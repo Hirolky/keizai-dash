@@ -17,7 +17,6 @@ app.layout = html.Div([
         html.H3('都道府県別人口とGDP,一人当たりGDP', style={
             'textAlign': 'center'
         }),
-        html.Div(id='hover-data-test'),
         html.Div([
             dcc.Graph(id = 'scatter-chart',
                       hoverData = {'points': [{'customdata': '大阪府'}]},
@@ -28,7 +27,18 @@ app.layout = html.Div([
                 max = df['year'].max(),
                 marks = {i: '{}'.format(i) for i in range(int(df['year'].min()), int(df['year'].max())) if i % 2 == 1},
             )
-        ])
+        ], style={
+            'display': 'inline-block',
+            'width': '60%',
+        }),
+        html.Div([
+            dcc.Graph(id='chart-one'),
+            dcc.Graph(id='chart-two'),
+            dcc.Graph(id='chart-three'),
+        ],style={
+            'display': 'inline-block',
+            'width': '39%'
+        })
     ])
 ])
 
@@ -55,8 +65,7 @@ def update_graph(selected_year):
             name=i,
         )for i in dff.area.unique()],
         'layout': {
-            'height': 600,
-            #'width': 2000,
+            'height': 900,
             'xaxis': {
                 'type': 'log',
                 'title': '都道府県別一人当たりGDP(log scale)',
@@ -71,13 +80,49 @@ def update_graph(selected_year):
         }
     }
 
+def create_smallChart(dff, area, name):
+    return {
+        'data':[go.Scatter(
+            x = dff['year'],
+            y = dff['value']
+        )],
+        'layout':{
+            'height': 300,
+            'title': '{}の{}データ'.format(area, name)
+        }
+    }
+
+
+
 @app.callback(
-    dash.dependencies.Output('hover-data-test', 'children'),
+    dash.dependencies.Output('chart-one', 'figure'),
     [(dash.dependencies.Input('scatter-chart', 'hoverData'))]
 )
-def datatest(hoverdata):
-    return json.dumps(hoverdata)
+def createGDP(hoverdata):
+    areaName = hoverdata['points'][0]['customdata']
+    dff = df[df['area']==areaName]
+    dff = dff[dff['item'] == 'GDP']
+    return create_smallChart(dff, areaName, 'GDP')
 
+@app.callback(
+    dash.dependencies.Output('chart-two', 'figure'),
+    [(dash.dependencies.Input('scatter-chart', 'hoverData'))]
+)
+def createPerGDP(hoverdata):
+    areaName = hoverdata['points'][0]['customdata']
+    dff = df[df['area']==areaName]
+    dff = dff[dff['item'] == 'pergdp']
+    return create_smallChart(dff, areaName, 'pergdp')
+
+@app.callback(
+    dash.dependencies.Output('chart-three', 'figure'),
+    [(dash.dependencies.Input('scatter-chart', 'hoverData'))]
+)
+def createPopu(hoverdata):
+    areaName = hoverdata['points'][0]['customdata']
+    dff = df[df['area']==areaName]
+    dff = dff[dff['item'] == 'popu']
+    return create_smallChart(dff, areaName, 'popu')
 
 if __name__=="__main__":
     app.run_server(debug=True)
